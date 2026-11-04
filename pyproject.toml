@@ -1,0 +1,10 @@
+[project]
+name = "k1-ops"
+version = "0.1.0"
+description = "Host launchers, containers, CI, job chains."
+requires-python = ">=3.10"
+dependencies = [
+]
+
+[tool.uv]
+package = false  # scripts / ROS packages, not an importable library

@@ -6,7 +6,7 @@ Host launchers, containers, CI, job chains.
 |---|---|
 | Layer | **L3**: Apps (processes you start) |
 | May import | nothing |
-| Files / LOC | 67 files · 2,479 lines (py, sh, cpp) |
+| Files / LOC | 67 files · 2,526 lines (py, sh, cpp) |
 | Part of | [k1-workspace](https://github.com/thdhyan/k1-workspace) (architecture and layering rules live there) |
 
 ## Where it sits
@@ -27,6 +27,35 @@ Not an installable library: clone it and run the scripts in place.
 ```bash
 git clone https://github.com/thdhyan/k1-ops
 ```
+
+## Usage
+
+Host launchers, training containers and job chains.
+
+```bash
+docker/run.sh --task Isaac-Velocity-Flat-K1-Mjlab-v0 --num-envs 4096 --iters 3000   # clones k1-workspace in the container
+docker/run.sh --source ...                                                          # bind-mount this checkout instead
+```
+- `docker/entrypoint.sh` supports two layouts, set with `K1_LAYOUT`. `workspace` (the default) fetches only
+  description, common, utils, runtime and rl-isaac. `legacy` is the old `booster_ws`.
+- `apptainer/` holds the Singularity build for `zz-bw`.
+- **Legacy, not ported yet:** most `scripts/spark_*_host.sh`, `dl_*_host.sh`, `phase6_env.sh` and
+  `dl_k1_teleop_up.sh` still assume `booster_ws` paths and container scripts next to them. Those scripts now live in
+  k1-rl-isaac `jobs/`.
+
+Hosts: [docs/ROBOTS.md section 8](https://github.com/thdhyan/k1-workspace/blob/main/docs/ROBOTS.md).
+
+## Tests
+
+No tests yet.
+
+## Robots and hosts
+
+Robot IPs, SSH aliases, network, safety and how to control each robot: [docs/ROBOTS.md](https://github.com/thdhyan/k1-workspace/blob/main/docs/ROBOTS.md) in k1-workspace.
+
+## Environment variables read
+
+`K1_BASE_CKPT`, `K1_CACHE_DIR`, `K1_CLONE`, `K1_CV_BASE`, `K1_ENABLE_CAMERAS`, `K1_GIT_BRANCH`, `K1_GPU`, `K1_IMAGE`, `K1_KICK_CMD_ALPHA`, `K1_KICK_GATE`, `K1_KICK_RESIDUAL`, `K1_KMA_BASE`, `K1_LAYOUT`, `K1_MOUNT_DIR`, `K1_PHYSICS`, `K1_REPO_URL`, `K1_ROS_DOMAIN_ID`, `K1_SMOKE_LOG`, `K1_SOURCE_ROS`, `K1_STEPS_BASE_CKPT`, `K1_TEACHER_PRESET`, `K1_TORCH_VENV`, `K1_TRAIN_SCRIPT`, `K1_USE_MOUNT`, `K1_WORKDIR`
 
 ## Layout
 
@@ -117,8 +146,6 @@ These files still name paths that now live in another repo (hard-coded path stri
 | File | Refers to | Owner |
 |---|---|---|
 | `.github/workflows/train_smoke.yml` | `isaac_tasks/` | k1-rl-isaac |
-| `docker/README.md` | `isaac_tasks/` | k1-rl-isaac |
-| `docker/apptainer/zzbw_run_k1_train.sh` | `isaac_tasks/` | k1-rl-isaac |
 | `docker/entrypoint.sh` | `isaac_tasks/` | k1-rl-isaac |
 | `scripts/dl_k1_teleop_up.sh` | `k1_teleop/` | k1-teleop |
 | `scripts/phase6_env.sh` | `isaac_tasks/` | k1-rl-isaac |
@@ -127,6 +154,42 @@ These files still name paths that now live in another repo (hard-coded path stri
 | `scripts/record_p2_one_host.sh` | `isaac_tasks/` | k1-rl-isaac |
 | `scripts/start_training.sh` | `isaac_tasks/` | k1-rl-isaac |
 | `scripts/zzbw_push_chain_host.sh` | `isaac_tasks/` | k1-rl-isaac |
+
+## Old `booster_ws` layout still referenced
+
+These files still name `booster_ws`, `isaac_tasks/` or `booster_train_ref` paths (container scripts not ported yet, or docstrings):
+
+- `.github/workflows/train_smoke.yml`
+- `docker/apptainer/zzbw_run_k1_train.sh`
+- `docker/entrypoint.sh`
+- `docker/run.sh`
+- `scripts/chain_p4_p2_host.sh`
+- `scripts/diag_frozen.sh`
+- `scripts/dl_ab_push_frict_host.sh`
+- `scripts/dl_ab_push_stiff_host.sh`
+- `scripts/dl_ab_push_wiring_host.sh`
+- `scripts/dl_k1_teleop_up.sh`
+- `scripts/dl_push_base_resume_host.sh`
+- `scripts/dl_push_chain2_host.sh`
+- `scripts/dl_push_chain3_host.sh`
+- `scripts/dl_push_chain_host.sh`
+- `scripts/dl_push_host.sh`
+- `scripts/dl_record_push_host.sh`
+- `scripts/docker_isaac_fleet.sh`
+- `scripts/launch_dl_batch.sh`
+- `scripts/phase6_env.sh`
+- `scripts/probe_rewards_host.sh`
+- `scripts/push_base_chain_host.sh`
+- `scripts/record_p2_final_host.sh`
+- `scripts/record_p2_one_host.sh`
+- `scripts/record_policies_host.sh`
+- `scripts/setup_remote.sh`
+- `scripts/spark_force_host.sh`
+- `scripts/spark_full_host.sh`
+- `scripts/spark_p2_dispcheck_host.sh`
+- `scripts/spark_p2_gait_host.sh`
+- `scripts/spark_p2_gaitfix_host.sh`
+- …and 14 more
 
 ## Origin
 

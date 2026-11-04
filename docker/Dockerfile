@@ -18,12 +18,11 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# Runtime defaults (override with docker run -e ...)
-ENV K1_REPO_URL=https://github.com/thdhyan/booster_ws \
-    K1_GIT_BRANCH=dev/phase-0 \
-    K1_WORKDIR=/workspace/booster_ws \
-    K1_MOUNT_DIR=/workspace/mounts \
-    K1_TRAIN_SCRIPT=isaac_tasks/k1_velocity/scripts/train.py
+# Runtime defaults (override with docker run -e ...). Repo, branch, workdir and
+# train script default per K1_LAYOUT inside the entrypoint; K1_LAYOUT=legacy
+# runs the old booster_ws repo.
+ENV K1_LAYOUT=workspace \
+    K1_MOUNT_DIR=/workspace/mounts
 
 WORKDIR /workspace
 

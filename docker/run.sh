@@ -77,7 +77,9 @@ DOCKER_ARGS=(
 )
 
 if [[ "$SOURCE_MOUNT" == 1 ]]; then
-    DOCKER_ARGS+=( -e K1_USE_MOUNT=1 -v "$PWD:/workspace/booster_ws" )
+    # mount at the entrypoint's default workdir for this layout
+    if [[ "${K1_LAYOUT:-workspace}" == legacy ]]; then WS=/workspace/booster_ws; else WS=/workspace/k1-workspace; fi
+    DOCKER_ARGS+=( -e K1_LAYOUT="${K1_LAYOUT:-workspace}" -e K1_USE_MOUNT=1 -v "$PWD:$WS" )
 fi
 
 echo "image:    $IMAGE"

@@ -6,14 +6,22 @@
 # image):
 #   1. Clone the workspace repo (with submodules + LFS), OR use a bind-mounted
 #      source tree when K1_USE_MOUNT=1.
-#   2. pip install -e the workspace training packages (booster_train, k1_velocity).
+#   2. pip install -e the training packages.
 #   3. Wire up mounted logs/models dirs.
 #   4. exec the training script with the passed CLI args.
 #
-# Env vars:
-#   K1_REPO_URL     default https://github.com/thdhyan/booster_ws
-#   K1_GIT_BRANCH   default main
-#   K1_WORKDIR      default /workspace/booster_ws
+# Two source layouts (K1_LAYOUT):
+#   workspace (default)  k1-workspace umbrella; only the submodules training
+#                        needs are fetched: libs/k1-{description,common,utils,
+#                        runtime,rl-isaac} (+ their nested assets/booster_train)
+#   legacy               the old monolithic booster_ws repo, unchanged
+#
+# Env vars (defaults depend on K1_LAYOUT; workspace / legacy):
+#   K1_REPO_URL     https://github.com/thdhyan/k1-workspace / .../booster_ws
+#   K1_GIT_BRANCH   main / dev/phase-0
+#   K1_WORKDIR      /workspace/k1-workspace / /workspace/booster_ws
+#   K1_TRAIN_SCRIPT libs/k1-rl-isaac/scripts/train.py / isaac_tasks/k1_velocity/scripts/train.py
+#                   (relative to K1_WORKDIR)
 #   K1_USE_MOUNT    1 = skip clone, use K1_WORKDIR as-is (bind-mounted source)
 #   GITHUB_TOKEN    optional; enables private repo/submodule clone
 #   K1_SOURCE_ROS   1 = source /opt/ros/jazzy (NEVER for Isaac processes!)
@@ -25,13 +33,31 @@
 # =============================================================================
 set -euo pipefail
 
-K1_REPO_URL="${K1_REPO_URL:-https://github.com/thdhyan/booster_ws}"
-K1_GIT_BRANCH="${K1_GIT_BRANCH:-dev/phase-0}"
-K1_WORKDIR="${K1_WORKDIR:-/workspace/booster_ws}"
+K1_LAYOUT="${K1_LAYOUT:-workspace}"
 K1_MOUNT_DIR="${K1_MOUNT_DIR:-/workspace/mounts}"
-TRAIN_SCRIPT="${K1_TRAIN_SCRIPT:-isaac_tasks/k1_velocity/scripts/train.py}"
+case "${K1_LAYOUT}" in
+  workspace)
+    K1_REPO_URL="${K1_REPO_URL:-https://github.com/thdhyan/k1-workspace}"
+    K1_GIT_BRANCH="${K1_GIT_BRANCH:-main}"
+    K1_WORKDIR="${K1_WORKDIR:-/workspace/k1-workspace}"
+    TRAIN_SCRIPT="${K1_TRAIN_SCRIPT:-libs/k1-rl-isaac/scripts/train.py}"
+    # editable installs, in dependency order; the libs go in --no-deps so pip
+    # does not fetch them again from their git URLs
+    TRAIN_LIBS=(libs/k1-description libs/k1-common libs/k1-utils libs/k1-runtime libs/k1-rl-isaac)
+    EXT_PKGS=(libs/k1-rl-isaac/third_party/booster_train/source/booster_train libs/k1-description/assets)
+    ;;
+  legacy)
+    K1_REPO_URL="${K1_REPO_URL:-https://github.com/thdhyan/booster_ws}"
+    K1_GIT_BRANCH="${K1_GIT_BRANCH:-dev/phase-0}"
+    K1_WORKDIR="${K1_WORKDIR:-/workspace/booster_ws}"
+    TRAIN_SCRIPT="${K1_TRAIN_SCRIPT:-isaac_tasks/k1_velocity/scripts/train.py}"
+    TRAIN_LIBS=()
+    EXT_PKGS=(isaac_tasks/booster_train_ref/source/booster_train isaac_tasks/k1_velocity src/k1_description/assets)
+    ;;
+  *) echo "[k1-entrypoint] FATAL: K1_LAYOUT must be workspace or legacy, got '${K1_LAYOUT}'" >&2; exit 1 ;;
+esac
 
-echo "[k1-entrypoint] repo=${K1_REPO_URL} branch=${K1_GIT_BRANCH}"
+echo "[k1-entrypoint] layout=${K1_LAYOUT} repo=${K1_REPO_URL} branch=${K1_GIT_BRANCH}"
 
 # ---------------------------------------------------------------- clone -----
 if [ "${K1_USE_MOUNT:-0}" != "1" ]; then
@@ -47,12 +73,22 @@ if [ "${K1_USE_MOUNT:-0}" != "1" ]; then
         # submodules are registered with SSH URLs (git@github.com:) — rewrite
         # to HTTPS so container clones work without SSH keys
         git config --global url."https://github.com/".insteadOf "git@github.com:"
-        git clone --recurse-submodules --shallow-submodules --depth 1 \
-            -b "${K1_GIT_BRANCH}" "${K1_REPO_URL}" "${K1_WORKDIR}"
-        cd "${K1_WORKDIR}"
+        if [ "${K1_LAYOUT}" = workspace ]; then
+            git clone --depth 1 -b "${K1_GIT_BRANCH}" "${K1_REPO_URL}" "${K1_WORKDIR}"
+            cd "${K1_WORKDIR}"
+            git submodule update --init --recursive --depth 1 -- "${TRAIN_LIBS[@]}"
+        else
+            git clone --recurse-submodules --shallow-submodules --depth 1 \
+                -b "${K1_GIT_BRANCH}" "${K1_REPO_URL}" "${K1_WORKDIR}"
+            cd "${K1_WORKDIR}"
+        fi
         git lfs pull || echo "[k1-entrypoint] WARN: git lfs pull failed (models/ may be pointer files)"
         # git clone exits 0 even when submodules fail — fail loudly here
-        MISSING=$(git submodule status | awk '$1 ~ /^-/ {print $2}')
+        if [ "${K1_LAYOUT}" = workspace ]; then
+            MISSING=$(git submodule status --recursive -- "${TRAIN_LIBS[@]}" | awk '$1 ~ /^-/ {print $2}')
+        else
+            MISSING=$(git submodule status | awk '$1 ~ /^-/ {print $2}')
+        fi
         if [ -n "${MISSING}" ]; then
             echo "[k1-entrypoint] FATAL: submodules not fetched: ${MISSING}" >&2
             echo "[k1-entrypoint] hint: if the repos are private, set GITHUB_TOKEN in .env" >&2
@@ -82,9 +118,12 @@ echo "[k1-entrypoint] python: ${PY}"
 # would install only A editable! booster_train's setup.py lists only the top
 # package (subpackages resolve via the source path), and booster_assets
 # computes BOOSTER_ASSETS_DIR from __file__ — both break when non-editable.
-$PY -m pip install --no-cache-dir -q -e isaac_tasks/booster_train_ref/source/booster_train
-$PY -m pip install --no-cache-dir -q -e isaac_tasks/k1_velocity
-$PY -m pip install --no-cache-dir -q -e src/k1_description/assets
+for pkg in "${EXT_PKGS[@]}"; do
+    $PY -m pip install --no-cache-dir -q -e "${pkg}"
+done
+for lib in "${TRAIN_LIBS[@]}"; do
+    $PY -m pip install --no-cache-dir -q --no-deps -e "${lib}"
+done
 $PY -c "import booster_train, k1_velocity; print('[k1-entrypoint] workspace packages import OK')"
 
 # ------------------------------------------------- optional ROS sourcing ----

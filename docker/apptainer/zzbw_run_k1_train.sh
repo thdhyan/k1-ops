@@ -18,7 +18,7 @@
 #   # = --task Isaac-Velocity-Rough-K1-Teacher-v0 --num_envs 4096 --headless
 #
 # Student distillation (after teacher ckpt exists):
-#   K1_TRAIN_SCRIPT=isaac_tasks/k1_velocity/scripts/train_student.py \
+#   K1_TRAIN_SCRIPT=libs/k1-rl-isaac/scripts/train_student.py \
 #   ~/run_k1_train.sh --task Isaac-Velocity-Distill-K1-v0 \
 #       --teacher_checkpoint /workspace/mounts/logs/rsl_rl/<run>/model_4999.pt
 #
@@ -50,7 +50,13 @@ SCRIPT_ENV=()
 [ -n "${K1_GIT_BRANCH:-}" ] && SCRIPT_ENV+=(--env "K1_GIT_BRANCH=$K1_GIT_BRANCH")
 # docker-hub SIF (k1-isaac-train:3.0.0b2) has no %environment -> re-pass the
 # clone workdir explicitly, else the entrypoint defaults to the RO /workspace
-SCRIPT_ENV+=(--env "K1_WORKDIR=/tmp/booster_ws")
+K1_LAYOUT=${K1_LAYOUT:-workspace}
+SCRIPT_ENV+=(--env "K1_LAYOUT=$K1_LAYOUT")
+if [ "$K1_LAYOUT" = legacy ]; then
+  SCRIPT_ENV+=(--env "K1_WORKDIR=/tmp/booster_ws")
+else
+  SCRIPT_ENV+=(--env "K1_WORKDIR=/tmp/k1-workspace")
+fi
 
 exec singularity run --nv --containall \
   --bind "$RUN/tmp:/tmp" \

@@ -22,6 +22,8 @@ docker/
                        + rsl-rl 5.0.1) + optional ROS 2 Jazzy/teleop + mjlab
   Dockerfile           stage 2: thin retag of the pushed base (hub workflow)
   entrypoint.sh        runtime: clone repo (submodules+LFS) -> pip -e pkgs -> train.py
+                       K1_LAYOUT=workspace (default: k1-workspace umbrella, training
+                       libs only) | legacy (old booster_ws repo)
   run.sh               host-side runner (env-file, GPUs, mounts, CLI passthrough)
   .env.example         secrets template — copy to .env, NEVER commit .env
   apptainer/k1_train.def  Apptainer/Singularity definition for HPC clusters
@@ -73,7 +75,7 @@ docker/run.sh --task Isaac-Velocity-Rough-K1-Teacher-v0 --num-envs 4096 --iters 
 docker/run.sh --branch dev/phase-0 -- \
   python_dummy_ignored --task Isaac-Velocity-Distill-K1-v0 \
   --teacher_checkpoint logs/rsl_rl/p2_move_teacher/<run>/model_4999.pt
-# (for the student, also set: -e K1_TRAIN_SCRIPT=isaac_tasks/k1_velocity/scripts/train_student.py)
+# (for the student, also set: -e K1_TRAIN_SCRIPT=libs/k1-rl-isaac/scripts/train_student.py)
 
 # iterate on local uncommitted code (bind-mount this checkout instead of clone)
 docker/run.sh --source --task Isaac-Velocity-Rough-K1-Teacher-v0
@@ -127,7 +129,7 @@ apptainer run --nv --cleanenv \
 ```
 
 Notes:
-- The clone lands in `/tmp/booster_ws` (cluster homes can be read-only in the
+- The clone lands in `/tmp/k1-workspace` (`/tmp/booster_ws` with `K1_LAYOUT=legacy`) (cluster homes can be read-only in the
   container); bind a scratch dir over `/tmp` to cache it.
 - `--nv` passes the host NVIDIA driver; `--cleanenv` keeps host env out.
 - If pulls fail with `invalid username/password`, your `~/.docker/config.json`

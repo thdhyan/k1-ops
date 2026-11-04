@@ -6,8 +6,20 @@ Host launchers, containers, CI, job chains.
 |---|---|
 | Layer | **L3**: Apps (processes you start) |
 | May import | nothing |
-| Files / LOC | 68 files · 2,479 lines (py, sh, cpp) |
+| Files / LOC | 67 files · 2,479 lines (py, sh, cpp) |
 | Part of | [k1-workspace](https://github.com/thdhyan/k1-workspace) (architecture and layering rules live there) |
+
+## Where it sits
+
+```mermaid
+flowchart TB
+  k1_ops((k1-ops))
+  style k1_ops fill:#e8833a,color:#000
+```
+
+Used by: nothing (top layer).
+
+![k1-workspace layers](https://raw.githubusercontent.com/thdhyan/k1-workspace/main/docs/img/architecture.png)
 
 ## Install
 
@@ -19,6 +31,7 @@ git clone https://github.com/thdhyan/k1-ops
 ## Layout
 
 ```
+README.md
 docker/  (5 files)
   Dockerfile
   README.md

@@ -32,6 +32,7 @@ Part of [k1-ops](https://github.com/thdhyan/k1-ops).
 | `record_p2_final_host.sh` | Wait server-side for the gait-v2 P2 final marker, record teacher+student, |
 | `record_p2_one_host.sh` | Record + verify + upload ONE P2 policy (teacher, while the student trains). |
 | `record_policies_host.sh` | REC host launcher (run on spark04): bind-mounts the staged repo + warp/kit |
+| `remote_train.sh` | remote_train.sh: run an mjlab (k1-rl-mj) training on any SSH-reachable CUDA host. |
 | `setup_remote.sh` | Idempotent Phase-6 bring-up on a REMOTE server box (dl, …). Run as the remote |
 | `spark_force_host.sh` | F-variant host launcher (run on spark04): p1f/p2f — smoke-gated teacher PPO |
 | `spark_full_host.sh` | Full-student host launcher (run on spark04): p1/p2. |

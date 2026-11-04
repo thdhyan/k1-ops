@@ -5,7 +5,7 @@
 # Server-side loop; wandb stays the live dashboard. 5-min cadence, delta-only rsync.
 set -u
 DEST="$HOME/Projects/booster_ws/logs/spark04"
-SRC="thakk100@(server IP redacted)"
+SRC="${K1_SYNC_SRC:?set K1_SYNC_SRC=user@host of the training server}"
 RSH="ssh -i $HOME/.ssh/spark04_sync -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 mkdir -p "$DEST/rsl_rl"
 echo "[spark_sync] start $(date -Is) dest=$DEST"
